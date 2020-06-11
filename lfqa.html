@@ -14304,7 +14304,7 @@ When a body is heated at constant temperature</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[15]:</div>
+<div class="prompt input_prompt">In&nbsp;[21]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">predicted</span> <span class="o">=</span> <span class="p">[]</span>
@@ -14332,8 +14332,6 @@ When a body is heated at constant temperature</td>
     <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">predicted</span> <span class="o">+=</span> <span class="p">[</span><span class="n">answer</span><span class="p">]</span>
     <span class="n">reference</span> <span class="o">+=</span> <span class="p">[</span><span class="n">eli5</span><span class="p">[</span><span class="s1">&#39;test_eli5&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;answers&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
-    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
 <span class="c1"># Compare each generation to the fist answer from the dataset</span>
 <span class="n">scores</span> <span class="o">=</span> <span class="n">nlp_rouge</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span>
@@ -14359,140 +14357,30 @@ When a body is heated at constant temperature</td>
 
 <div class="output_area">
 
-    <div class="prompt"></div>
-
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>0
-100
-200
-300
-400
-500
-600
-700
-800
-900
-1000
-1100
-1200
-1300
-1400
-1500
-1600
-1700
-1800
-1900
-2000
-2100
-2200
-2300
-2400
-2500
-2600
-2700
-2800
-2900
-3000
-3100
-3200
-3300
-3400
-3500
-3600
-3700
-3800
-3900
-4000
-4100
-4200
-4300
-4400
-4500
-4600
-4700
-4800
-4900
-5000
-5100
-5200
-5300
-5400
-5500
-5600
-5700
-5800
-5900
-6000
-6100
-6200
-6300
-6400
-6500
-6600
-6700
-6800
-6900
-7000
-7100
-7200
-7300
-7400
-7500
-7600
-7700
-7800
-7900
-8000
-8100
-8200
-8300
-8400
-8500
-8600
-8700
-8800
-8900
-9000
-9100
-9200
-9300
-9400
-9500
-9600
-9700
-9800
-9900
-</pre>
-</div>
-</div>
-
-<div class="output_area">
-
-    <div class="prompt output_prompt">Out[15]:</div>
+    <div class="prompt output_prompt">Out[21]:</div>
 
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-</style><table id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104e" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
+</style><table id="T_aae11f14_abdf_11ea_89a9_059ab7a6104e" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104elevel0_row0" class="row_heading level0 row0" >P</th>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow0_col0" class="data row0 col0" >0.3029</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow0_col1" class="data row0 col1" >0.0609</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow0_col2" class="data row0 col2" >0.1712</td>
+                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row0" class="row_heading level0 row0" >P</th>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col0" class="data row0 col0" >0.3030</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col1" class="data row0 col1" >0.0609</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col2" class="data row0 col2" >0.1712</td>
             </tr>
             <tr>
-                        <th id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104elevel0_row1" class="row_heading level0 row1" >R</th>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow1_col0" class="data row1 col0" >0.2939</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow1_col1" class="data row1 col1" >0.0583</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow1_col2" class="data row1 col2" >0.1795</td>
+                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row1" class="row_heading level0 row1" >R</th>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col0" class="data row1 col0" >0.2940</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col1" class="data row1 col1" >0.0583</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col2" class="data row1 col2" >0.1795</td>
             </tr>
             <tr>
-                        <th id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104elevel0_row2" class="row_heading level0 row2" >F</th>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow2_col0" class="data row2 col0" >0.2557</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow2_col1" class="data row2 col1" >0.0502</td>
-                        <td id="T_a631f4f8_abb6_11ea_89a9_059ab7a6104erow2_col2" class="data row2 col2" >0.1488</td>
+                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row2" class="row_heading level0 row2" >F</th>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col0" class="data row2 col0" >0.2557</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col1" class="data row2 col1" >0.0502</td>
+                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col2" class="data row2 col2" >0.1488</td>
             </tr>
     </tbody></table>
 </div>
