@@ -13077,7 +13077,7 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Long-Form-Question-Answering-with-ELI5-and-Wikipedia">Long Form Question Answering with ELI5 and Wikipedia<a class="anchor-link" href="#Long-Form-Question-Answering-with-ELI5-and-Wikipedia">&#182;</a></h1><hr>
+<h1 id="Explain-Anything-Like-I'm-Five:">Explain <em>Anything</em> Like I'm Five:<a class="anchor-link" href="#Explain-Anything-Like-I'm-Five:">&#182;</a></h1><h2 id="A-Model-for-Open-Domain-Long-Form-Question-Answering">A Model for Open Domain Long Form Question Answering<a class="anchor-link" href="#A-Model-for-Open-Domain-Long-Form-Question-Answering">&#182;</a></h2><hr>
 <h3 id="Table-of-Contents">Table of Contents<a class="anchor-link" href="#Table-of-Contents">&#182;</a></h3><ol>
 <li><a href="#intro"><strong>Introduction</strong></a><br>
  a. <a href="#prelims">Preliminaries</a><br>
@@ -13105,14 +13105,14 @@ div#notebook {
 <h1 id="1.-Introduction">1. Introduction<a class="anchor-link" href="#1.-Introduction">&#182;</a></h1><p>Imagine that you are taken with a sudden desire to understand <strong>how the fruit of a tropical tree gets transformed into chocolate bars</strong>, or want to understand <strong>the role of fever in the human body's immune response</strong>: how would you go about finding that information?</p>
 <p>If your specific question has already been asked and answered clearly and succintly on one of the many question answering platforms available on the Internet (such as <a href="https://www.quora.com/How-is-chocolate-made"><strong>Quora</strong></a>, <a href="https://www.reddit.com/user/ex_5_libris/comments/9c8gb1/chocolate_how_chocolate_is_made/"><strong>Reddit</strong></a>, or <a href="https://answers.yahoo.com/question/index?qid=20070615082202AArsYN1"><strong>Yahoo Answers</strong></a>), you're in luck: modern search engines will probably take you to that pre-existing answer pretty reliably in a matter of a few clicks.</p>
 <p>If no one else has asked the exact question you are interested in, however, the process will be a little more involved. You will likely have to collect relevant information from a variety of sources, figure out how these pieces of knowledge fit together in relation to your query, and synthetize a narrative that answers your initial question.</p>
-<p>Now, wouldn't it be great if your computer could do all of that for you: <strong>gather</strong> the right sources (<em>e.g.</em> paragraphs from relevant Wikipedia pages), <strong>synthetize</strong> the information, and <strong>write up</strong> an easy-to-read, original summary of the relevant points? Such a system isn't quite available yet, at least not one that can provide <em>reliable</em> information in its summary. Even though current systems excel at finding an extractive span that answers a factoid question in a given document, they still find open-domain settings and long answer generation challenging.</p>
+<p>Now, wouldn't it be great if your computer could do all of that for you: <strong>gather</strong> the right sources (<em>e.g.</em> paragraphs from relevant Wikipedia pages), <strong>synthetize</strong> the information, and <strong>write up</strong> an easy-to-read, original summary of the relevant points? Such a system isn't quite available yet, at least not one that can provide <em>reliable</em> information in its summary. Even though current systems excel at finding an extractive span that answers a factoid question in a given document, they still find open-domain settings where a model needs to find its own sources of information and long answer generation challenging.</p>
 <p>Thankfully, a number of recent advances in natural language understanding and generation have made working toward solving this problem much easier! These advances include progress in the pre-training (e.g. <a href="https://arxiv.org/abs/1910.13461">BART</a>, <a href="https://arxiv.org/abs/1910.10683">T5</a>) and evaluation (e.g. for <a href="https://arxiv.org/abs/2004.04228">factuality</a>) of sequence-to-sequence models for conditional text generation, new ways to use language understanding models to find information in Wikipedia (e.g. <a href="https://kentonl.com/pub/gltpc.2020.pdf">REALM</a>, <a href="https://arxiv.org/abs/2004.04906">DPR</a>), and a new training dataset introduced in the paper <a href="https://arxiv.org/abs/1907.09190">ELI5: Long Form Question Answering</a>.</p>
 <p>The <a href="https://arxiv.org/abs/1907.09190">ELI5</a> dataset was built by gathering questions that were asked by community members of the <a href="https://www.reddit.com/r/explainlikeimfive/">r/explainlikeimfive</a> subreddit, along with the answers that were provided by other users. The <a href="https://www.reddit.com/r/explainlikeimfive/wiki/detailed_rules">rules of the subreddit</a> make this data particularly well suited to training a model for abstractive question answering: the questions need to seek an objective explanation about well established facts, and the answers provided need to be understandable to a layperson without any particular knowledge domain.</p>
 <p><strong>In this notebook,</strong> we show how we can take advantage of these recent advances to train a <strong>long form question answering</strong> system which takes in a question, fetches 10 relevant passages from a <a href="https://www.aclweb.org/anthology/2020.lrec-1.297/">Wikipedia snapshot</a>, and writes a multi-sentence answer based on the question and retrieved passages. In particular, training embedding-based retrieval models to gather supporting evidence for open-domain questions is relatively new research area: the last few months have seen some significant progress in cases where direct supervision is available, or with extensive task-specific pretraining. Here, we show how the ELI5 dataset allows us to <strong>train a dense retrieval system without access to either</strong>, making dense retrieval models more accessible. See <a href="https://docs.google.com/presentation/d/1A5wJEzFYGdNem7egJ-BTm6EMI3jGNe1lalyChYL54gw">this presentation</a> from the <a href="https://github.com/huggingface/awesome-papers">Hugging Face reading group</a> for a non-exhaustive overview of recent work in the field.</p>
 <p>Follow along to learn about the steps involved and read some background on the state of the art for some related tasks, or go straight to the:</p>
 <h2 id="Live-Demo!"><a href="http://35.226.96.115:8080/"><strong>Live Demo!</strong></a><a class="anchor-link" href="#Live-Demo!">&#182;</a></h2><p>(And don't forget to scroll down on the left sidebar to show all of the generation options!)</p>
 <p><a id='prelims'></a></p>
-<h3 id="1.a---Preliminaries">1.a - Preliminaries<a class="anchor-link" href="#1.a---Preliminaries">&#182;</a></h3><p>The implementation presented here relies on the <a href="https://huggingface.co/">HuggingFace</a> <a href="https://github.com/huggingface/transformers">🤗transformers</a> and <a href="https://github.com/huggingface/nlp">🤗nlp</a> libraries. Wikipedia indexing relies on <a href="https://www.elastic.co/elasticsearch">ElasticSearch</a> with its <a href="https://github.com/elastic/elasticsearch-py">python bindings</a> for the sparse version, and <a href="https://github.com/facebookresearch/faiss/">faiss</a> for the dense version. You can get all of these by running:</p>
+<h3 id="1.a---Preliminaries">1.a - Preliminaries<a class="anchor-link" href="#1.a---Preliminaries">&#182;</a></h3><p>The implementation presented here relies on the <a href="https://huggingface.co/">Hugging Face</a> <a href="https://github.com/huggingface/transformers">🤗transformers</a> and <a href="https://github.com/huggingface/nlp">🤗nlp</a> libraries. Wikipedia indexing relies on <a href="https://www.elastic.co/elasticsearch">ElasticSearch</a> with its <a href="https://github.com/elastic/elasticsearch-py">python bindings</a> for the sparse version, and <a href="https://github.com/facebookresearch/faiss/">faiss</a> for the dense version. You can get all of these by running:</p>
 <blockquote><p>pip install elasticsearch<br>
 pip install faiss_gpu<br>
 pip install nlp<br>
@@ -13121,8 +13121,7 @@ pip install transformers<br>
 wget <a href="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.1-linux-x86_64.tar.gz">https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.7.1-linux-x86_64.tar.gz</a><br>
 tar -xzvf elasticsearch-7.7.1-linux-x86_64.tar.gz</p>
 </blockquote>
-<p>The training relies on two datasets: <a href="https://arxiv.org/abs/1907.09190">ELI5</a>, a processed version of the <a href="https://www.reddit.com/r/explainlikeimfive/">r/explainlikeimfive</a> subreddit, and the <a href="https://www.aclweb.org/anthology/2020.lrec-1.297/">Wiki40b</a> Wikipedia image.</p>
-<p>Downloading ELI5 can take up to 72 hours since we need to to filter through all of the Reddit dumps for 8 years, so we suggest that you do that first (you will need a good download speed and about 10GB of disk space):</p>
+<p>The training relies on two datasets: <a href="https://arxiv.org/abs/1907.09190">ELI5</a>, a processed version of the <a href="https://www.reddit.com/r/explainlikeimfive/">r/explainlikeimfive</a> subreddit, and the <a href="https://www.aclweb.org/anthology/2020.lrec-1.297/">Wiki40b</a> Wikipedia image. You can download both using the <a href="https://github.com/huggingface/nlp">🤗nlp</a> linrary with:</p>
 
 </div>
 </div>
@@ -13133,7 +13132,8 @@ tar -xzvf elasticsearch-7.7.1-linux-x86_64.tar.gz</p>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">nlp</span>
-<span class="n">eli5</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s1">&#39;explainlikeimfive&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;LFQA_reddit&#39;</span><span class="p">,</span> <span class="n">experimental</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">eli5</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s1">&#39;eli5&#39;</span><span class="p">)</span>
+<span class="n">wiki40b_snippets</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s1">&#39;wiki_snippets&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;wiki40b_en_100_0&#39;</span><span class="p">)[</span><span class="s1">&#39;train&#39;</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -13245,10 +13245,13 @@ Detecting and Removing Multiclass Bias in Word Embeddings</a> for word embedding
 </ol>
 </blockquote>
 <p>First, note that in this case <strong>we have two answers</strong> which broadly describe the same phenomenon: the first one is scored higher because it is more succint and to the point. This example already illustrates one important feature of the LFQA task: <strong>there are usually several valid ways to answer a given question.</strong> Of the 272K examples in the ELI5 training set, nearly two thirds (167K) have at least two answers. We'll need to keep this in mind when training and evaluation of the model.</p>
-<p>Secondly, we need to give our model access to the information that is expressed in both these answers. Recently released models have been shown to include a significant amount of world knowledge in their parameters without the need of any external knowledge at all (see e.g. the <a href="https://arxiv.org/abs/2002.08910">Closed-book QA performance of the T5 model</a>); however, there are several advantages to giving the model explicit access to information in text form. First, a larger number of parameters in a model implies a larger computational cost. Secondly, getting information from a text database allows us to easily update the model's knowledge without having to re-train its parameters.</p>
+<p>Secondly, we need to give our model access to the information that is expressed in both these answers. Recently released models have been shown to include a significant amount of world knowledge in their parameters without the need of any external knowledge at all (see e.g. the <a href="https://arxiv.org/abs/2002.08910">Closed-book QA performance of the T5 model</a>). There are several advantages to giving the model explicit access to information in text form however. First, a larger number of parameters in a model implies a larger computational cost. Secondly, getting information from a text database allows us to easily update the model's knowledge without having to re-train its parameters.</p>
 <hr>
 <p><img src="images/ELI5animation.gif" width="750" align="center"/></p>
 <hr>
+<center> Overview of the full question answering process.</center>
+<center> First, the Document Retriever selects a set of passages from Wikipedia that have information relevant to the question.</center>
+<center> Then, the Answer Generation Model reads the concatenation of the question and retrieverd passages, and writes out the answer.</center><hr>
 <p>Here, we choose to give the model access to Wikipedia text. Full Wikipedia articles are typically too long for most current models to handle, and notable exceptions like the <a href="https://arxiv.org/abs/2001.04451">Reformer</a> or <a href="https://arxiv.org/abs/2004.05150">Longformer</a> architectures unfortunately do not yet have pre-trained sequence-to-sequence variants. Thus, we follow previous work in splitting Wikipedia articles into disjoint snippets of 100 words, and keep track of the title of the article and sections a snippet came from. Here's how you can get a pre-processed Wiki40b version split into 100-word passages with the <code>nlp</code> library, and an example snippet which has some of the information we're looking for ("<em>little conduction would occur since air is a poor conductor of heat</em>"):</p>
 
 </div>
@@ -13256,11 +13259,10 @@ Detecting and Removing Multiclass Bias in Word Embeddings</a> for word embedding
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[3]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">wiki40b_snippets</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span><span class="s1">&#39;wiki_snippets&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;wiki40b_en_100_0&#39;</span><span class="p">,</span> <span class="n">experimental</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="s1">&#39;train&#39;</span><span class="p">]</span>
-<span class="n">wiki40b_snippets</span><span class="p">[</span><span class="mi">8991855</span><span class="p">]</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">wiki40b_snippets</span><span class="p">[</span><span class="mi">8991855</span><span class="p">]</span>
 </pre></div>
 
     </div>
@@ -13273,7 +13275,7 @@ Detecting and Removing Multiclass Bias in Word Embeddings</a> for word embedding
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[3]:</div>
+    <div class="prompt output_prompt">Out[4]:</div>
 
 
 
@@ -13430,130 +13432,130 @@ Detecting and Removing Multiclass Bias in Word Embeddings</a> for word embedding
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col0 {
+    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col2 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col0 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col0 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col1 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col1 {
             text-align:  left;
-        }    #T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col2 {
+        }    #T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col2 {
             text-align:  left;
-        }</style><table id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Article</th>        <th class="col_heading level0 col1" >Sections</th>        <th class="col_heading level0 col2" >Text</th>    </tr></thead><tbody>
+        }</style><table id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Article</th>        <th class="col_heading level0 col1" >Sections</th>        <th class="col_heading level0 col2" >Text</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row0" class="row_heading level0 row0" >0</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col0" class="data row0 col0" >---</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col1" class="data row0 col1" >---</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row0_col2" class="data row0 col2" >--- Why does water heated to room temperature feel colder than the air around it?</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row0" class="row_heading level0 row0" >0</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col0" class="data row0 col0" >---</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col1" class="data row0 col1" >---</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row0_col2" class="data row0 col2" >--- Why does water heated to room temperature feel colder than the air around it?</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row1" class="row_heading level0 row1" >1</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col0" class="data row1 col0" >Salt fingering</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col1" class="data row1 col1" >Salt fingering</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row1_col2" class="data row1 col2" >Salt fingering Salt fingering is a mixing process that occurs when relatively warm, salty water overlies relatively colder, fresher water. It is driven by the fact that heated water diffuses more readily than salty water. A small parcel of warm, salty water sinking downwards into a colder, fresher region will lose its heat before losing its salt, making the parcel of water increasingly denser than the water around it and sinking further. Likewise, a small parcel of colder, fresher water will be displaced upwards and gain heat by diffusion from surrounding water, which will then make it lighter than the</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row1" class="row_heading level0 row1" >1</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col0" class="data row1 col0" >Salt fingering</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col1" class="data row1 col1" >Salt fingering</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row1_col2" class="data row1 col2" >Salt fingering Salt fingering is a mixing process that occurs when relatively warm, salty water overlies relatively colder, fresher water. It is driven by the fact that heated water diffuses more readily than salty water. A small parcel of warm, salty water sinking downwards into a colder, fresher region will lose its heat before losing its salt, making the parcel of water increasingly denser than the water around it and sinking further. Likewise, a small parcel of colder, fresher water will be displaced upwards and gain heat by diffusion from surrounding water, which will then make it lighter than the</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row2" class="row_heading level0 row2" >2</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col0" class="data row2 col0" >Solar water heating</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col1" class="data row2 col1" >Flat plate & Evacuated tube</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row2_col2" class="data row2 col2" >protected by a glass panel. Consequently, these types of collectors are much less efficient when water temperature exceeds ambient air temperatures. For pool heating applications, the water to be heated is often colder than the ambient roof temperature, at which point the lack of thermal insulation allows additional heat to be drawn from the surrounding environment. Evacuated tube Evacuated tube collectors (ETC) are a way to reduce the heat loss, inherent in flat plates. Since heat loss due to convection cannot cross a vacuum, it forms an efficient isolation mechanism to keep heat inside the collector pipes. Since two flat</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row2" class="row_heading level0 row2" >2</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col0" class="data row2 col0" >Solar water heating</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col1" class="data row2 col1" >Flat plate & Evacuated tube</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row2_col2" class="data row2 col2" >protected by a glass panel. Consequently, these types of collectors are much less efficient when water temperature exceeds ambient air temperatures. For pool heating applications, the water to be heated is often colder than the ambient roof temperature, at which point the lack of thermal insulation allows additional heat to be drawn from the surrounding environment. Evacuated tube Evacuated tube collectors (ETC) are a way to reduce the heat loss, inherent in flat plates. Since heat loss due to convection cannot cross a vacuum, it forms an efficient isolation mechanism to keep heat inside the collector pipes. Since two flat</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row3" class="row_heading level0 row3" >3</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col0" class="data row3 col0" >Humidifier</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col1" class="data row3 col1" >Fixed-installation humidifiers & Problems</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row3_col2" class="data row3 col2" >to damage from overly dry air. In colder months, they may provide modest energy savings, since as humidity increases, occupants may feel warm at a lower temperature.
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row3" class="row_heading level0 row3" >3</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col0" class="data row3 col0" >Humidifier</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col1" class="data row3 col1" >Fixed-installation humidifiers & Problems</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row3_col2" class="data row3 col2" >to damage from overly dry air. In colder months, they may provide modest energy savings, since as humidity increases, occupants may feel warm at a lower temperature.
 Bypass humidifiers are connected between the heated and cold air return ducts, using the pressure difference between these ducts to cause some heated air to make a bypass through the humidifier and return to the furnace.
 Any humidifiers should usually be disabled during the summer months if air conditioning is used; air conditioners partially function to reducing indoor humidity, and having a humidifier continue to operate will waste significant amounts of energy. Problems The USEPA</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row4" class="row_heading level0 row4" >4</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col0" class="data row4 col0" >Drake Landing Solar Community</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col1" class="data row4 col1" >How it works & Energy centre</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row4_col2" class="data row4 col2" >the short-term storage tanks in the Energy Centre to be heated again in order to complete the circuit. During colder months the water from the BTES passes back to the short-term storage tank and is then directed to each home. Similar to a hot water tank, the heated water goes through a heat exchanger that blows air across the warm fan coil. Heat travels from the water to the air and is directed through the house via ductwork. When the temperature reaches that said on the thermostat, an automatic valve shuts off the heat transfer unit. Energy centre The Energy</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row4" class="row_heading level0 row4" >4</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col0" class="data row4 col0" >Drake Landing Solar Community</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col1" class="data row4 col1" >How it works & Energy centre</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row4_col2" class="data row4 col2" >the short-term storage tanks in the Energy Centre to be heated again in order to complete the circuit. During colder months the water from the BTES passes back to the short-term storage tank and is then directed to each home. Similar to a hot water tank, the heated water goes through a heat exchanger that blows air across the warm fan coil. Heat travels from the water to the air and is directed through the house via ductwork. When the temperature reaches that said on the thermostat, an automatic valve shuts off the heat transfer unit. Energy centre The Energy</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row5" class="row_heading level0 row5" >5</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col0" class="data row5 col0" >Diamond dust</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col1" class="data row5 col1" >Characteristics & Formation</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row5_col2" class="data row5 col2" >it looks like many tiny diamonds are flashing in the air. Formation These ice crystals usually form when a temperature inversion is present at the surface and the warmer air above the ground mixes with the colder air near the surface. Since warmer air frequently contains more water vapor than colder air, this mixing will usually also transport water vapor into the air near the surface, causing the relative humidity of the near-surface air to increase. If the relative humidity increase near the surface is large enough then ice crystals may form.
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row5" class="row_heading level0 row5" >5</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col0" class="data row5 col0" >Diamond dust</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col1" class="data row5 col1" >Characteristics & Formation</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row5_col2" class="data row5 col2" >it looks like many tiny diamonds are flashing in the air. Formation These ice crystals usually form when a temperature inversion is present at the surface and the warmer air above the ground mixes with the colder air near the surface. Since warmer air frequently contains more water vapor than colder air, this mixing will usually also transport water vapor into the air near the surface, causing the relative humidity of the near-surface air to increase. If the relative humidity increase near the surface is large enough then ice crystals may form.
 To form diamond dust the temperature must be below</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row6" class="row_heading level0 row6" >6</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col0" class="data row6 col0" >Effects of global warming on oceans</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col1" class="data row6 col1" >Ocean currents</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row6_col2" class="data row6 col2" >changing latitudes of our planet. As the atmosphere is warmed nearest the equator, the hot air at the surface of our planet is heated, causing it to rise and draw in cooler air to take its place, creating what is known as circulation cells. This ultimately causes the air to be significantly colder near the poles than at the equator.
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row6" class="row_heading level0 row6" >6</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col0" class="data row6 col0" >Effects of global warming on oceans</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col1" class="data row6 col1" >Ocean currents</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row6_col2" class="data row6 col2" >changing latitudes of our planet. As the atmosphere is warmed nearest the equator, the hot air at the surface of our planet is heated, causing it to rise and draw in cooler air to take its place, creating what is known as circulation cells. This ultimately causes the air to be significantly colder near the poles than at the equator.
 Wind patterns associated with these circulation cells drive surface currents which push the surface water to the higher latitudes where the air is colder. This cools the water down enough to where it is capable of dissolving more gasses and minerals,</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row7" class="row_heading level0 row7" >7</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col0" class="data row7 col0" >Mesoscale convective system</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col1" class="data row7 col1" >Lake-effect snow</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row7_col2" class="data row7 col2" >for lake-effect rain or snow to form, the air moving across the lake must be significantly cooler than the surface air (which is likely to be near the temperature of the water surface). Specifically, the air temperature at the altitude where the air pressure is 850 millibars (or 1.5 kilometres (0.93 mi) altitude) should be 13 °C (24 °F) lower than the temperature of the air at the surface.  Lake-effect occurring when the air at 850 millibars is 25 °C (45 °F) colder than the water temperature can produce thundersnow, snow showers accompanied by lightning and thunder (due to the larger amount of energy</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row7" class="row_heading level0 row7" >7</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col0" class="data row7 col0" >Mesoscale convective system</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col1" class="data row7 col1" >Lake-effect snow</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row7_col2" class="data row7 col2" >for lake-effect rain or snow to form, the air moving across the lake must be significantly cooler than the surface air (which is likely to be near the temperature of the water surface). Specifically, the air temperature at the altitude where the air pressure is 850 millibars (or 1.5 kilometres (0.93 mi) altitude) should be 13 °C (24 °F) lower than the temperature of the air at the surface.  Lake-effect occurring when the air at 850 millibars is 25 °C (45 °F) colder than the water temperature can produce thundersnow, snow showers accompanied by lightning and thunder (due to the larger amount of energy</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row8" class="row_heading level0 row8" >8</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col0" class="data row8 col0" >Thermal comfort</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col1" class="data row8 col1" >Interplay of temperature and humidity</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row8_col2" class="data row8 col2" >such as the heat index.
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row8" class="row_heading level0 row8" >8</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col0" class="data row8 col0" >Thermal comfort</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col1" class="data row8 col1" >Interplay of temperature and humidity</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row8_col2" class="data row8 col2" >such as the heat index.
 For lower temperatures, a related interplay was identified only qualitatively:
 High humidity and low temperatures cause the air to feel chilly.
 Cold air with high relative humidity "feels" colder than dry air of the same temperature because high humidity in cold weather increases the conduction of heat from the body.
@@ -13561,16 +13563,16 @@ There has been controversy over why damp cold air feels colder than dry cold air
 For more recent data look for</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row9" class="row_heading level0 row9" >9</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col0" class="data row9 col0" >Honyaki</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col1" class="data row9 col1" >Traditional process</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row9_col2" class="data row9 col2" >heat. The quench water or oil is prepared and brought to the right temperature. The forge is heated. Lights are turned off and the room shut from the outside. Once ready, the blade is buried and shuffled around in the charcoal and when it reaches the correct temperature it is thrust into water and moved forward and back (so as to prevent lateral distortion) and then after a couple seconds side to side. The knife could also be brought up slightly above temperature and then held in the room to the correct temperature before quench. The quench could be interrupted</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row9" class="row_heading level0 row9" >9</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col0" class="data row9 col0" >Honyaki</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col1" class="data row9 col1" >Traditional process</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row9_col2" class="data row9 col2" >heat. The quench water or oil is prepared and brought to the right temperature. The forge is heated. Lights are turned off and the room shut from the outside. Once ready, the blade is buried and shuffled around in the charcoal and when it reaches the correct temperature it is thrust into water and moved forward and back (so as to prevent lateral distortion) and then after a couple seconds side to side. The knife could also be brought up slightly above temperature and then held in the room to the correct temperature before quench. The quench could be interrupted</td>
             </tr>
             <tr>
-                        <th id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496level0_row10" class="row_heading level0 row10" >10</th>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col0" class="data row10 col0" >Greywell Tunnel</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col1" class="data row10 col1" >SSSI</td>
-                        <td id="T_3f379e7a_ab33_11ea_a1fd_395cedfc7496row10_col2" class="data row10 col2" >creates an ideal micro-climate for the bats, which is maintained at around 10 °C (50 °F) all year. When the temperature outside the tunnel is colder than this, cold air flows into the bottom of the tunnel where it is warmed by the water, and warmer air flows out along the top of the tunnel. During the summer the air flow is reversed, with warm air flowing into the top of the tunnel and being cooled as it flows back out over the water. By 2006, there were some 12,500 bats roosting in the tunnel, which included the largest known colony of</td>
+                        <th id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806level0_row10" class="row_heading level0 row10" >10</th>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col0" class="data row10 col0" >Greywell Tunnel</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col1" class="data row10 col1" >SSSI</td>
+                        <td id="T_e6a67934_abe6_11ea_bac0_cb508f4c6806row10_col2" class="data row10 col2" >creates an ideal micro-climate for the bats, which is maintained at around 10 °C (50 °F) all year. When the temperature outside the tunnel is colder than this, cold air flows into the bottom of the tunnel where it is warmed by the water, and warmer air flows out along the top of the tunnel. During the summer the air flow is reversed, with warm air flowing into the top of the tunnel and being cooled as it flows back out over the water. By 2006, there were some 12,500 bats roosting in the tunnel, which included the largest known colony of</td>
             </tr>
     </tbody></table>
 </div>
@@ -13599,7 +13601,7 @@ For more recent data look for</td>
 <h1 id="4.-Retrieving-Support-Documents-with-an-ELI5-Trained-Dense-Model">4. Retrieving Support Documents with an ELI5-Trained Dense Model<a class="anchor-link" href="#4.-Retrieving-Support-Documents-with-an-ELI5-Trained-Dense-Model">&#182;</a></h1><p>The sparse retriever works by finding passages which feature the words from the query. However, it has no way to know <em>a priori</em> which of these words are more important in context, and seems to struggle with understanding the central theme of the query (human-perceived temperature).</p>
 <p>Thankfully, some recent works have taken advantage of advances in pre-trained contextual word representations to solve this problem. Models such as <a href="https://arxiv.org/abs/2004.04906">DPR</a> or <a href="https://arxiv.org/abs/2002.08909">REALM</a> for example learn to compute a vector representation of the query, as well as vector representations of Wikipedia passages in such a way that the passages that best answers a question maximize the dot product between the two representations. Retrieval is then reduced to a Maximum Inner Product Search, which can be executed efficiently using systems like <a href="https://github.com/facebookresearch/faiss">FAISS</a>.</p>
 <p>These successes are very encouraging for our Open-Domain Long Form QA application. However, our task and setup do not quite meet the requirements of either of either of these approaches. On the one hand, the <a href="https://arxiv.org/abs/2004.04906">DPR</a> system is trained using gold passage annotations: most major QA dataset tell the system which Wikipedia passage contains the answer. Unfortunately, we do not have such annotations for the ELI5 data. On the other hand, while <a href="https://arxiv.org/abs/2002.08909">REALM</a> is trained without passage supervision, it requires a pretty expensive pre-training step with an <a href="https://arxiv.org/abs/1906.00300">Inverse Cloze Task</a> (100,000 steps with batch size 4096), and the ability to re-compute the embeddings of all Wikipedia passages regularly during training.</p>
-<p>In order to train a similar dense retrieval system at reduced cost without having access to gold passage annotation, we will have to <strong>take advantage of another unique feature of our dataset</strong>; namely, the fact that the long form answers are quite similar in style to the Wikipeduia passages we want to index. Our hypothesis then is that if we train a system to embed the questions and answers in our dataset in a way that allows us to easily match questions to answers, then using the answer embedder on Wikipedia passages should allow us to similarly match questions to supporting evidence from Wikipedia.</p>
+<p>In order to train a similar dense retrieval system at reduced cost without having access to gold passage annotation, we will have to <strong>take advantage of another unique feature of our dataset</strong>, namely the fact that the long form answers are quite similar in style to the Wikipedia passages we want to index. Our hypothesis then is that if we train a system to embed the questions and answers in our dataset in a way that allows us to easily match questions to answers, then using the answer embedder on Wikipedia passages should allow us to similarly match questions to supporting evidence from Wikipedia.</p>
 <p><a id='dense_train'></a></p>
 <h3 id="4.a---Contrastive-Training-with-ELI5-In-Batch-Negatives">4.a - Contrastive Training with ELI5 In-Batch Negatives<a class="anchor-link" href="#4.a---Contrastive-Training-with-ELI5-In-Batch-Negatives">&#182;</a></h3><p>As mentioned above, we want to train a system to produce question and answer embeddings, such that the dot product between the representation of a question and any of its answers is greater than between it and answers of all of the other questions in the dataset.</p>
 <p>Unfortunately, actually comparing all questions to all answers before taking every single gradient step is computationally prohibitive: instead, we follow previous work in simply processing medium to large batches of question-answer pairs, and making sure that the dot product of a question with its answer is larger than with all other answers in the batch, and <em>vice versa</em>.</p>
@@ -13607,6 +13609,9 @@ For more recent data look for</td>
 <hr>
 <p><img src="images/ELI5contrastive.svg" width="700" align="center"/></p>
 <hr>
+<center> To train the retriever, we show the model batches of 512 question-answer pairs.</center>
+<center> The model needs to ensure that the embedding of each question in the batch is closer to the embedding</center>
+<center> of its corresponding answer than to the embedding of any other answer in the batch.</center><hr>
 <p>We use a single BERT-style pre-trained model to embed the questions and answers, and learn different projection matrices to bring both representations down to dimension 128: the projection matrices are trained from scratch as the sentence embedding model is fine-tuned. We found that the 8-layer distilled version of BERT from the <a href="https://arxiv.org/abs/1908.08962">Well-Read Students Learn Better paper</a> performed as well or better as full BERT for a notable gain in computation speed: if you want an even faster model, that work provides pre-trained models spanning the full range of computation/accuracy trade-offs.</p>
 <p>The model can than be trained with the following code: with batch size 32/512 on a single 16GB GPU, you can run 10 training epochs in under 6 hours.</p>
 
@@ -13655,14 +13660,14 @@ For more recent data look for</td>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>If you don't want to train the model yourself, you can also download trained weights from the <a href="https://huggingface.co/models">HuggingFace model repository</a> with:</p>
+<p>If you don't want to train the model yourself, you can also download trained weights from the <a href="https://huggingface.co/models">Hugging Face model repository</a> with:</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[4]:</div>
+<div class="prompt input_prompt">In&nbsp;[3]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># TODO: put the model in Transformers. Meanwhile:</span>
@@ -13711,6 +13716,8 @@ For more recent data look for</td>
 <hr>
 <p><img src="images/ELI5wiki_index.svg" width="600" align="center"/></p>
 <hr>
+<center> At test time, the Retriever Model encodes the question, and compares its embedding to the pre-computed representation of</center>
+<center>  all the Wikipedia passages. The ten passages with the closest embedding are returned to create the support document.</center><hr>
 <p>The MIPS part can be executed efficiently with the <code>faiss</code> library. Additionally, since we computed 128-dimensional passage embeddings, the whole of the representations fits on a GPU, making retrieval even faster. We can create the <code>faiss_gpu</code> index with the following code:</p>
 
 </div>
@@ -13718,7 +13725,7 @@ For more recent data look for</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[5]:</div>
+<div class="prompt input_prompt">In&nbsp;[4]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">faiss_res</span> <span class="o">=</span> <span class="n">faiss</span><span class="o">.</span><span class="n">StandardGpuResources</span><span class="p">()</span>
@@ -13748,7 +13755,7 @@ For more recent data look for</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[9]:</div>
+<div class="prompt input_prompt">In&nbsp;[11]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">question</span> <span class="o">=</span> <span class="n">eli5</span><span class="p">[</span><span class="s1">&#39;test_eli5&#39;</span><span class="p">][</span><span class="mi">12345</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
@@ -13773,151 +13780,151 @@ For more recent data look for</td>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[9]:</div>
+    <div class="prompt output_prompt">Out[11]:</div>
 
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-    #T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col0 {
+    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col2 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col0 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col0 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col1 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col1 {
             text-align:  left;
-        }    #T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col2 {
+        }    #T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col2 {
             text-align:  left;
-        }</style><table id="T_23771978_ab4b_11ea_a57a_1925cd876a09" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Article</th>        <th class="col_heading level0 col1" >Sections</th>        <th class="col_heading level0 col2" >Text</th>    </tr></thead><tbody>
+        }</style><table id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Article</th>        <th class="col_heading level0 col1" >Sections</th>        <th class="col_heading level0 col2" >Text</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row0" class="row_heading level0 row0" >0</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col0" class="data row0 col0" >---</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col1" class="data row0 col1" >---</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row0_col2" class="data row0 col2" >--- Why does water heated to room temperature feel colder than the air around it?</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row0" class="row_heading level0 row0" >0</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col0" class="data row0 col0" >---</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col1" class="data row0 col1" >---</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row0_col2" class="data row0 col2" >--- Why does water heated to room temperature feel colder than the air around it?</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row1" class="row_heading level0 row1" >1</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col0" class="data row1 col0" >Heat transfer</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col1" class="data row1 col1" >Heat transfer in the human body & Evaporative cooling</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row1_col2" class="data row1 col2" >when the skin is completely wet. The body continuously loses water by evaporation but the most significant amount of heat loss occurs during periods of increased physical activity. Evaporative cooling Evaporative cooling happens when water vapor is added to the surrounding air. The energy needed to evaporate the water is taken from the air in the form of sensible heat and converted into latent heat, while the air remains at a constant enthalpy. Latent heat describes the amount of heat that is needed to evaporate the liquid; this heat comes from the liquid itself and the surrounding gas and surfaces.</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row1" class="row_heading level0 row1" >1</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col0" class="data row1 col0" >Heat transfer</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col1" class="data row1 col1" >Heat transfer in the human body & Evaporative cooling</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row1_col2" class="data row1 col2" >when the skin is completely wet. The body continuously loses water by evaporation but the most significant amount of heat loss occurs during periods of increased physical activity. Evaporative cooling Evaporative cooling happens when water vapor is added to the surrounding air. The energy needed to evaporate the water is taken from the air in the form of sensible heat and converted into latent heat, while the air remains at a constant enthalpy. Latent heat describes the amount of heat that is needed to evaporate the liquid; this heat comes from the liquid itself and the surrounding gas and surfaces.</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row2" class="row_heading level0 row2" >2</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col0" class="data row2 col0" >Johan Sandström</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col1" class="data row2 col1" >Sandström  Theorem</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row2_col2" class="data row2 col2" >at greater pressures. There is an ambiguity, however, as to the meaning of the terms 'heating' and 'cooling' in Sandstrom's theorem. So far, heating and cooling has always been interpreted in the literature as being associated with 'surface heating' and 'surface cooling' respectively.
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row2" class="row_heading level0 row2" >2</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col0" class="data row2 col0" >Johan Sandström</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col1" class="data row2 col1" >Sandström  Theorem</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row2_col2" class="data row2 col2" >at greater pressures. There is an ambiguity, however, as to the meaning of the terms 'heating' and 'cooling' in Sandstrom's theorem. So far, heating and cooling has always been interpreted in the literature as being associated with 'surface heating' and 'surface cooling' respectively.
 In real fluids, however, molecular and turbulent diffusion always cause internal heating/cooling even in absence of external heating/cooling, as long as the temperature of the fluid considered is non-uniform. As is well-known, molecular and turbulent diffusion tends to relax the system toward thermodynamic equilibrium, i.e., toward an isothermal state, which for a statically stable fluid, will warm up</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row3" class="row_heading level0 row3" >3</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col0" class="data row3 col0" >Thermal equilibrium</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col1" class="data row3 col1" >Bodies prepared with separately uniform temperatures, then put into purely thermal communication with each other</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row3_col2" class="data row3 col2" >are not in a relation of thermal equilibrium, heat will flow from the hotter to the colder, by whatever pathway, conductive or radiative, is available, and this flow will continue until thermal equilibrium is reached and then they will have the same temperature.
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row3" class="row_heading level0 row3" >3</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col0" class="data row3 col0" >Thermal equilibrium</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col1" class="data row3 col1" >Bodies prepared with separately uniform temperatures, then put into purely thermal communication with each other</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row3_col2" class="data row3 col2" >are not in a relation of thermal equilibrium, heat will flow from the hotter to the colder, by whatever pathway, conductive or radiative, is available, and this flow will continue until thermal equilibrium is reached and then they will have the same temperature.
 One form of thermal equilibrium is radiative exchange equilibrium. Two bodies, each with its own uniform temperature, in solely radiative connection, no matter how far apart, or what partially obstructive, reflective, or refractive, obstacles lie in their path of radiative exchange, not moving relative to one another, will exchange thermal radiation, in net the hotter transferring energy to</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row4" class="row_heading level0 row4" >4</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col0" class="data row4 col0" >Evaporative cooler</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col1" class="data row4 col1" >Physical principles</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row4_col2" class="data row4 col2" >air condition and moving along a line of constant enthalpy toward a state of higher humidity.
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row4" class="row_heading level0 row4" >4</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col0" class="data row4 col0" >Evaporative cooler</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col1" class="data row4 col1" >Physical principles</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row4_col2" class="data row4 col2" >air condition and moving along a line of constant enthalpy toward a state of higher humidity.
 A simple example of natural evaporative cooling is perspiration, or sweat, secreted by the body, evaporation of which cools the body. The amount of heat transfer depends on the evaporation rate, however for each kilogram of water vaporized 2,257 kJ of energy (about 890 BTU per pound of pure water, at 95 °F (35 °C)) are transferred. The evaporation rate depends on the temperature and humidity of the air, which is why sweat accumulates more on humid days, as it does not evaporate fast enough.
 Vapor-compression refrigeration uses evaporative cooling,</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row5" class="row_heading level0 row5" >5</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col0" class="data row5 col0" >Thermal contact conductance</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col1" class="data row5 col1" >Factors influencing contact conductance & Contact pressure</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row5_col2" class="data row5 col2" >Thermal contact conductance In physics, thermal contact conductance is the study of heat conduction between solid bodies in thermal contact. The thermal contact conductance coefficient, , is a property indicating the thermal conductivity, or ability to conduct heat, between two bodies in contact. The inverse of this property is termed thermal contact resistance. Factors influencing contact conductance Thermal contact conductance is a complicated phenomenon, influenced by many factors. Experience shows that the most important ones are as follows: Contact pressure For thermal transport between two contacting bodies, such as particles in a granular medium, the contact pressure is the factor</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row5" class="row_heading level0 row5" >5</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col0" class="data row5 col0" >Thermal contact conductance</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col1" class="data row5 col1" >Factors influencing contact conductance & Contact pressure</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row5_col2" class="data row5 col2" >Thermal contact conductance In physics, thermal contact conductance is the study of heat conduction between solid bodies in thermal contact. The thermal contact conductance coefficient, , is a property indicating the thermal conductivity, or ability to conduct heat, between two bodies in contact. The inverse of this property is termed thermal contact resistance. Factors influencing contact conductance Thermal contact conductance is a complicated phenomenon, influenced by many factors. Experience shows that the most important ones are as follows: Contact pressure For thermal transport between two contacting bodies, such as particles in a granular medium, the contact pressure is the factor</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row6" class="row_heading level0 row6" >6</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col0" class="data row6 col0" >Thermodynamic temperature</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col1" class="data row6 col1" >The heat of phase changes</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row6_col2" class="data row6 col2" >to completely boil or vaporize water (what is known as enthalpy of vaporization) is roughly 540 times that required for a one-degree increase.
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row6" class="row_heading level0 row6" >6</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col0" class="data row6 col0" >Thermodynamic temperature</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col1" class="data row6 col1" >The heat of phase changes</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row6_col2" class="data row6 col2" >to completely boil or vaporize water (what is known as enthalpy of vaporization) is roughly 540 times that required for a one-degree increase.
 Water's sizable enthalpy of vaporization is why one's skin can be burned so quickly as steam condenses on it (heading from red to green in Fig. 7 above). In the opposite direction, this is why one's skin feels cool as liquid water on it evaporates (a process that occurs at a sub-ambient wet-bulb temperature that is dependent on relative humidity). Water's highly energetic enthalpy of vaporization is also an important factor underlying why solar pool covers (floating, insulated blankets that</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row7" class="row_heading level0 row7" >7</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col0" class="data row7 col0" >Temperature</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col1" class="data row7 col1" >Local thermodynamic equilibrium & Bodies in thermodynamic equilibrium</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row7_col2" class="data row7 col2" >and this is because temperature is an intensive variable. Bodies in thermodynamic equilibrium For experimental physics, hotness means that, when comparing any two given bodies in their respective separate thermodynamic equilibria, any two suitably given empirical thermometers with numerical scale readings will agree as to which is the hotter of the two given bodies, or that they have the same temperature. This does not require the two thermometers to have a linear relation between their numerical scale readings, but it does require that the relation between their numerical readings shall be strictly monotonic. A definite sense of greater hotness can</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row7" class="row_heading level0 row7" >7</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col0" class="data row7 col0" >Temperature</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col1" class="data row7 col1" >Local thermodynamic equilibrium & Bodies in thermodynamic equilibrium</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row7_col2" class="data row7 col2" >and this is because temperature is an intensive variable. Bodies in thermodynamic equilibrium For experimental physics, hotness means that, when comparing any two given bodies in their respective separate thermodynamic equilibria, any two suitably given empirical thermometers with numerical scale readings will agree as to which is the hotter of the two given bodies, or that they have the same temperature. This does not require the two thermometers to have a linear relation between their numerical scale readings, but it does require that the relation between their numerical readings shall be strictly monotonic. A definite sense of greater hotness can</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row8" class="row_heading level0 row8" >8</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col0" class="data row8 col0" >Latent heat</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col1" class="data row8 col1" >Usage</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row8_col2" class="data row8 col2" >phase of atmospheric or ocean water,  vaporization, condensation, freezing or melting, whereas sensible heat is energy transferred that is evident in change of the temperature of the atmosphere or ocean, or ice, without those phase changes, though it is associated with changes of pressure and volume.
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row8" class="row_heading level0 row8" >8</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col0" class="data row8 col0" >Latent heat</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col1" class="data row8 col1" >Usage</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row8_col2" class="data row8 col2" >phase of atmospheric or ocean water,  vaporization, condensation, freezing or melting, whereas sensible heat is energy transferred that is evident in change of the temperature of the atmosphere or ocean, or ice, without those phase changes, though it is associated with changes of pressure and volume.
 The original usage of the term, as introduced by Black, was applied to systems that were intentionally held at constant temperature. Such usage referred to latent heat of expansion and several other related latent heats. These latent heats are defined independently of the conceptual framework of thermodynamics.
 When a body is heated at constant temperature</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row9" class="row_heading level0 row9" >9</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col0" class="data row9 col0" >Sensible heat</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col1" class="data row9 col1" >Sensible heat</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row9_col2" class="data row9 col2" >Sensible heat Sensible heat is heat exchanged by a body or thermodynamic system in which the exchange of heat changes the temperature of the body or system, and some macroscopic variables of the body or system, but leaves unchanged certain other macroscopic variables of the body or system, such as volume or pressure.</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row9" class="row_heading level0 row9" >9</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col0" class="data row9 col0" >Sensible heat</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col1" class="data row9 col1" >Sensible heat</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row9_col2" class="data row9 col2" >Sensible heat Sensible heat is heat exchanged by a body or thermodynamic system in which the exchange of heat changes the temperature of the body or system, and some macroscopic variables of the body or system, but leaves unchanged certain other macroscopic variables of the body or system, such as volume or pressure.</td>
             </tr>
             <tr>
-                        <th id="T_23771978_ab4b_11ea_a57a_1925cd876a09level0_row10" class="row_heading level0 row10" >10</th>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col0" class="data row10 col0" >Heat transfer</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col1" class="data row10 col1" >Overview & Conduction</td>
-                        <td id="T_23771978_ab4b_11ea_a57a_1925cd876a09row10_col2" class="data row10 col2" >changes. Conduction On a microscopic scale, heat conduction occurs as hot, rapidly moving or vibrating atoms and molecules interact with neighboring atoms and molecules, transferring some of their energy (heat) to these neighboring particles. In other words, heat is transferred by conduction when adjacent atoms vibrate against one another, or as electrons move from one atom to another. Conduction is the most significant means of heat transfer within a solid or between solid objects in thermal contact. Fluids—especially gases—are less conductive. Thermal contact conductance is the study of heat conduction between solid bodies in contact. The process of heat transfer</td>
+                        <th id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806level0_row10" class="row_heading level0 row10" >10</th>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col0" class="data row10 col0" >Heat transfer</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col1" class="data row10 col1" >Overview & Conduction</td>
+                        <td id="T_f3cbf6a2_abe6_11ea_bac0_cb508f4c6806row10_col2" class="data row10 col2" >changes. Conduction On a microscopic scale, heat conduction occurs as hot, rapidly moving or vibrating atoms and molecules interact with neighboring atoms and molecules, transferring some of their energy (heat) to these neighboring particles. In other words, heat is transferred by conduction when adjacent atoms vibrate against one another, or as electrons move from one atom to another. Conduction is the most significant means of heat transfer within a solid or between solid objects in thermal contact. Fluids—especially gases—are less conductive. Thermal contact conductance is the study of heat conduction between solid bodies in contact. The process of heat transfer</td>
             </tr>
     </tbody></table>
 </div>
@@ -13990,13 +13997,12 @@ When a body is heated at constant temperature</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[16]:</div>
+<div class="prompt input_prompt">In&nbsp;[14]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># TODO: run on full test instead of just 10000</span>
-<span class="k">def</span> <span class="nf">dense_ret_for_eval</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">n_ret</span><span class="p">):</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">dense_ret_for_eval</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">n_ret</span><span class="p">):</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">dense_res_list</span> <span class="o">=</span> <span class="n">query_qa_dense_index</span><span class="p">(</span>
-        <span class="n">question</span><span class="p">,</span> <span class="n">qar_model</span><span class="p">,</span> <span class="n">qar_tokenizer</span><span class="p">,</span> <span class="n">wiki40b_snippets</span><span class="p">,</span> <span class="n">wiki40b_gpu_index</span><span class="p">,</span> <span class="n">n_results</span><span class="o">=</span><span class="n">n_ret</span>
+        <span class="n">question</span><span class="p">,</span> <span class="n">qar_model</span><span class="p">,</span> <span class="n">qar_tokenizer</span><span class="p">,</span> <span class="n">wiki40b_snippets</span><span class="p">,</span> <span class="n">wiki40b_gpu_index</span><span class="p">,</span> <span class="n">n_results</span><span class="o">=</span><span class="n">n_ret</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cuda:1&#39;</span>
     <span class="p">)</span>
     <span class="n">dense_doc</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">res</span><span class="p">[</span><span class="s1">&#39;passage_text&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">dense_res_list</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">dense_doc</span>
@@ -14028,22 +14034,22 @@ When a body is heated at constant temperature</td>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[16]:</div>
+    <div class="prompt output_prompt">Out[14]:</div>
 
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-</style><table id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >IDF-Recall</th>        <th class="col_heading level0 col1" >Time/Query</th>    </tr></thead><tbody>
+</style><table id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >IDF-Recall</th>        <th class="col_heading level0 col1" >Time/Query</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496level0_row0" class="row_heading level0 row0" >Sparse</th>
-                        <td id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496row0_col0" class="data row0 col0" >0.3207</td>
-                        <td id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496row0_col1" class="data row0 col1" >0.3507</td>
+                        <th id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806level0_row0" class="row_heading level0 row0" >Sparse</th>
+                        <td id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806row0_col0" class="data row0 col0" >0.3212</td>
+                        <td id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806row0_col1" class="data row0 col1" >0.3162</td>
             </tr>
             <tr>
-                        <th id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496level0_row1" class="row_heading level0 row1" >Dense</th>
-                        <td id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496row1_col0" class="data row1 col0" >0.3238</td>
-                        <td id="T_af95ccae_ab48_11ea_a1fd_395cedfc7496row1_col1" class="data row1 col1" >0.1081</td>
+                        <th id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806level0_row1" class="row_heading level0 row1" >Dense</th>
+                        <td id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806row1_col0" class="data row1 col0" >0.3247</td>
+                        <td id="T_9934f8ca_abfe_11ea_bac0_cb508f4c6806row1_col1" class="data row1 col1" >0.0948</td>
             </tr>
     </tbody></table>
 </div>
@@ -14066,7 +14072,7 @@ When a body is heated at constant temperature</td>
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a id='generation'></a></p>
-<h1 id="5.-Generating-Answers-with-a-Sequence-to-Sequence-Model">5. Generating Answers with a Sequence-to-Sequence Model<a class="anchor-link" href="#5.-Generating-Answers-with-a-Sequence-to-Sequence-Model">&#182;</a></h1><p>Now that we know how to create an evidence document with supporting information for a givem question, let's look into training the second component of our system: the <strong>answer generation module</strong>. We will instantiate it as a sequence-to-sequence model which uses the <a href="https://arxiv.org/abs/1910.13461">BART</a> architecture, and initialize it with the <a href="https://huggingface.co/facebook/bart-large">bart-large pretrained weights</a>.</p>
+<h1 id="5.-Generating-Answers-with-a-Sequence-to-Sequence-Model">5. Generating Answers with a Sequence-to-Sequence Model<a class="anchor-link" href="#5.-Generating-Answers-with-a-Sequence-to-Sequence-Model">&#182;</a></h1><p>Now that we know how to create an evidence document with supporting information for a given question, let's look into training the second component of our system: the <strong>answer generation module</strong>. We will instantiate it as a sequence-to-sequence model which uses the <a href="https://arxiv.org/abs/1910.13461">BART</a> architecture, and initialize it with the <a href="https://huggingface.co/facebook/bart-large">bart-large pretrained weights</a>.</p>
 <p>In short, the <a href="https://arxiv.org/abs/1910.13461">BART paper</a> uses a denoising auto-encoder style objective to pre-train an encoder-decoder model (similarly to how masked language modeling is used to pre-trained BERT-style encoders). Among other applications, they show that large-scale pre-training with their objective followed by fine-tuning on ELI5 data yields the state-of-the-art ROUGE performance for the original version of the dataset (which uses pre-computed support documents made from CommonCrawl pages).</p>
 <p>We provide the concatenation of the question and support document as input to the model, and train the decoder to minimize the perplexity of the gold answer. One notable choice is that <strong>we train the model using all high-scoring answers in the training set</strong>, so the model will see several instances of the same question-document input with different outputs. The supporting passages are separated by a special token <code>&lt;P&gt;</code>, so the input for our running example will look like:</p>
 <blockquote><p>question: Why does water heated to room temperature feel colder than the air around it? context: \&lt;P&gt; when the skin is completely wet. The body continuously loses ... this heat comes from the liquid itself and the surrounding gas and surfaces. \&lt;P&gt; protected by a glass panel. Consequently, these types of collectors... Since heat loss due to convection cannot cross a vacuum, it forms an efficient isolation mechanism to keep heat inside the collector pipes. Since two flat \&lt;P&gt; ... \&lt;P&gt; changes. Conduction On... Fluids—especially gases—are less conductive. Thermal contact conductance is the study of heat conduction between solid bodies in contact. The process of heat transfer</p>
@@ -14132,22 +14138,18 @@ When a body is heated at constant temperature</td>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Again, if you don't want to train the model yourself, we made trained weights available on the <a href="https://huggingface.co/models">HuggingFace model repository</a> , which you can download with:</p>
+<p>Again, if you don't want to train the model yourself, we made trained weights available on the <a href="https://huggingface.co/models">Hugging Face model repository</a> , which you can download with:</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[6]:</div>
+<div class="prompt input_prompt">In&nbsp;[9]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># TODO: put the model in Transformers. Meanwhile:</span>
-<span class="n">qa_s2s_tokenizer</span><span class="p">,</span> <span class="n">qa_s2s_model</span> <span class="o">=</span> <span class="n">make_qa_s2s_model</span><span class="p">(</span>
-    <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;facebook/bart-large&quot;</span><span class="p">,</span>
-    <span class="n">from_file</span><span class="o">=</span><span class="s1">&#39;seq2seq_models/eli5_bart_model_512_2.pth&#39;</span><span class="p">,</span>
-    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda:0&quot;</span>
-<span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">qa_s2s_tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;facebook/bart-large&#39;</span><span class="p">)</span>
+<span class="n">qa_s2s_model</span> <span class="o">=</span> <span class="n">AutoModelWithLMHead</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s1">&#39;bart_eli5&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;cuda:0&#39;</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -14165,7 +14167,7 @@ When a body is heated at constant temperature</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[7]:</div>
+<div class="prompt input_prompt">In&nbsp;[10]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">questions</span> <span class="o">=</span> <span class="p">[]</span>
@@ -14210,57 +14212,57 @@ When a body is heated at constant temperature</td>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[7]:</div>
+    <div class="prompt output_prompt">Out[10]:</div>
 
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow0_col0 {
+    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row0_col0 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow0_col1 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row0_col1 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow1_col0 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row1_col0 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow1_col1 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row1_col1 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow2_col0 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row2_col0 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow2_col1 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row2_col1 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow3_col0 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row3_col0 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow3_col1 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row3_col1 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow4_col0 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row4_col0 {
             text-align:  left;
-        }    #T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow4_col1 {
+        }    #T_64d1a666_acc9_11ea_a272_a3f69c6c8418row4_col1 {
             text-align:  left;
-        }</style><table id="T_496dd326_ab4e_11ea_bb79_ab039df81fcb" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Question</th>        <th class="col_heading level0 col1" >Answer</th>    </tr></thead><tbody>
+        }</style><table id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >Question</th>        <th class="col_heading level0 col1" >Answer</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_496dd326_ab4e_11ea_bb79_ab039df81fcblevel0_row0" class="row_heading level0 row0" >0</th>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow0_col0" class="data row0 col0" >Why does water heated to room temperature feel colder than the air around it?</td>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow0_col1" class="data row0 col1" >It doesn't feel colder than the air around it, it feels colder than your body temperature. Water is a better conductor of heat than air, so it takes more energy to heat it up than air is to cool it down. So when you heat water to room temperature, it takes away more energy from your body than air does.</td>
+                        <th id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418level0_row0" class="row_heading level0 row0" >0</th>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row0_col0" class="data row0 col0" >Why does water heated to room temperature feel colder than the air around it?</td>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row0_col1" class="data row0 col1" >It doesn't feel colder than the air around it, it feels colder than your body temperature. Water is a better conductor of heat than air, so it takes more energy to heat it up than air is to cool it down. So when you heat water to room temperature, it takes away more energy from your body than air does.</td>
             </tr>
             <tr>
-                        <th id="T_496dd326_ab4e_11ea_bb79_ab039df81fcblevel0_row1" class="row_heading level0 row1" >1</th>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow1_col0" class="data row1 col0" >Why do you get chills/goosebumps from hearing large crowds sing along to songs?</td>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow1_col1" class="data row1 col1" >I get goosebumps when I sing along to a song. I don't know what causes it, but it happens to me all the time. I think it has something to do with the fact that when you sing along with a song, your brain releases endorphins, which make you feel good.</td>
+                        <th id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418level0_row1" class="row_heading level0 row1" >1</th>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row1_col0" class="data row1 col0" >Why do you get chills/goosebumps from hearing large crowds sing along to songs?</td>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row1_col1" class="data row1 col1" >I get goosebumps when I sing along to a song. I don't know what causes it, but it happens to me all the time. I think it has something to do with the fact that when you sing along with a song, your brain releases endorphins, which make you feel good.</td>
             </tr>
             <tr>
-                        <th id="T_496dd326_ab4e_11ea_bb79_ab039df81fcblevel0_row2" class="row_heading level0 row2" >2</th>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow2_col0" class="data row2 col0" >How did studded leather and heavy eye makeup come to be the Hollywood dress code for dystopian, post-apocalyptic societies?</td>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow2_col1" class="data row2 col1" >Studded leather and heavy eye makeup have been around for a long time. It's not a new thing, it's been a Hollywood thing since the 80s and 90s.  URL_0   >  Studded and eye makeup were popularized by Alfred Hitchcock in the 1950s and 1960s, and a number of occurrences of the style in films were mentioned - Charlize Theron in Aeon Flux, Milla Jovovich in the fourth and fifth film of the Fourth and fifth movie of the Star Wars franchise, Angelina Jolie in The Last Airbender, and Raquel Croft in Raiders of the Lost Ark. According to Alfred Hitchcock's To Catch a Thief, there was a trend of women wearing pouty lips, Pouty Lips, pursed lips, etc. and a lot of depictions of the female role of the protagonist in a dystopian, post-apocalyptic society.</td>
+                        <th id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418level0_row2" class="row_heading level0 row2" >2</th>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row2_col0" class="data row2 col0" >How did studded leather and heavy eye makeup come to be the Hollywood dress code for dystopian, post-apocalyptic societies?</td>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row2_col1" class="data row2 col1" >Studded leather and heavy eye makeup have been around for a long time. It's not a new thing, it's been a Hollywood thing since the 80s and 90s.  URL_0   >  Studded and eye makeup were popularized by Alfred Hitchcock in the 1950s and 1960s, and a number of occurrences of the style in films were mentioned - Charlize Theron in Aeon Flux, Milla Jovovich in the fourth and fifth film of the Fourth and fifth movie of the Star Wars franchise, Angelina Jolie in The Last Airbender, and Raquel Croft in Raiders of the Lost Ark. According to Alfred Hitchcock's To Catch a Thief, there was a trend of women wearing pouty lips, Pouty Lips, pursed lips, etc. and a lot of depictions of the female role of the protagonist in a dystopian, post-apocalyptic society.</td>
             </tr>
             <tr>
-                        <th id="T_496dd326_ab4e_11ea_bb79_ab039df81fcblevel0_row3" class="row_heading level0 row3" >3</th>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow3_col0" class="data row3 col0" >What's the difference between a bush, a shrub, and a tree?</td>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow3_col1" class="data row3 col1" >A tree is a living thing. A shrub is a kind of plant. A bush is a type of plant that grows in the ground. A tree has a trunk, a branch, and a trunk. The trunk is the main part of the tree, the branch is the part that grows into the trunk.</td>
+                        <th id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418level0_row3" class="row_heading level0 row3" >3</th>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row3_col0" class="data row3 col0" >What's the difference between a bush, a shrub, and a tree?</td>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row3_col1" class="data row3 col1" >A tree is a living thing. A shrub is a kind of plant. A bush is a type of plant that grows in the ground. A tree has a trunk, a branch, and a trunk. The trunk is the main part of the tree, the branch is the part that grows into the trunk.</td>
             </tr>
             <tr>
-                        <th id="T_496dd326_ab4e_11ea_bb79_ab039df81fcblevel0_row4" class="row_heading level0 row4" >4</th>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow4_col0" class="data row4 col0" >Why is it hard to breathe with a strong air gust blowing straight at your face?</td>
-                        <td id="T_496dd326_ab4e_11ea_bb79_ab039df81fcbrow4_col1" class="data row4 col1" >It's not hard to breathe with a strong air gust blowing straight at your face. It's hard to breath when the wind is blowing in the opposite direction. The wind is pushing the air away from your face, so it's harder for your lungs to get the air they need to work against the wind.</td>
+                        <th id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418level0_row4" class="row_heading level0 row4" >4</th>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row4_col0" class="data row4 col0" >Why is it hard to breathe with a strong air gust blowing straight at your face?</td>
+                        <td id="T_64d1a666_acc9_11ea_a272_a3f69c6c8418row4_col1" class="data row4 col1" >It's not hard to breathe with a strong air gust blowing straight at your face. It's hard to breath when the wind is blowing in the opposite direction. The wind is pushing the air away from your face, so it's harder for your lungs to get the air they need to work against the wind.</td>
             </tr>
     </tbody></table>
 </div>
@@ -14291,7 +14293,7 @@ When a body is heated at constant temperature</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[8]:</div>
+<div class="prompt input_prompt">In&nbsp;[20]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="n">nlp_rouge</span> <span class="o">=</span> <span class="n">nlp</span><span class="o">.</span><span class="n">load_metric</span><span class="p">(</span><span class="s1">&#39;rouge&#39;</span><span class="p">)</span>
@@ -14311,7 +14313,7 @@ When a body is heated at constant temperature</td>
 <span class="n">reference</span> <span class="o">=</span> <span class="p">[]</span>
 
 <span class="c1"># Generate answers for the full test set</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10000</span><span class="p">):</span> <span class="c1"># (eli5[&#39;test_eli5&#39;].numrows):</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">eli5</span><span class="p">[</span><span class="s1">&#39;test_eli5&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">num_rows</span><span class="p">):</span>
     <span class="c1"># create support document with the dense index</span>
     <span class="n">question</span> <span class="o">=</span> <span class="n">eli5</span><span class="p">[</span><span class="s1">&#39;test_eli5&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;title&#39;</span><span class="p">]</span>
     <span class="n">doc</span><span class="p">,</span> <span class="n">res_list</span> <span class="o">=</span> <span class="n">query_qa_dense_index</span><span class="p">(</span>
@@ -14332,6 +14334,10 @@ When a body is heated at constant temperature</td>
     <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">predicted</span> <span class="o">+=</span> <span class="p">[</span><span class="n">answer</span><span class="p">]</span>
     <span class="n">reference</span> <span class="o">+=</span> <span class="p">[</span><span class="n">eli5</span><span class="p">[</span><span class="s1">&#39;test_eli5&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;answers&#39;</span><span class="p">][</span><span class="s1">&#39;text&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+<span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">((</span><span class="n">predicted</span><span class="p">,</span> <span class="n">reference</span><span class="p">),</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;test_pred_ref_full.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">))</span>
 
 <span class="c1"># Compare each generation to the fist answer from the dataset</span>
 <span class="n">scores</span> <span class="o">=</span> <span class="n">nlp_rouge</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span>
@@ -14363,24 +14369,24 @@ When a body is heated at constant temperature</td>
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-</style><table id="T_aae11f14_abdf_11ea_89a9_059ab7a6104e" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
+</style><table id="T_7850660e_acb1_11ea_bac0_cb508f4c6806" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row0" class="row_heading level0 row0" >P</th>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col0" class="data row0 col0" >0.3030</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col1" class="data row0 col1" >0.0609</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow0_col2" class="data row0 col2" >0.1712</td>
+                        <th id="T_7850660e_acb1_11ea_bac0_cb508f4c6806level0_row0" class="row_heading level0 row0" >P</th>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row0_col0" class="data row0 col0" >0.3025</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row0_col1" class="data row0 col1" >0.0609</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row0_col2" class="data row0 col2" >0.1708</td>
             </tr>
             <tr>
-                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row1" class="row_heading level0 row1" >R</th>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col0" class="data row1 col0" >0.2940</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col1" class="data row1 col1" >0.0583</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow1_col2" class="data row1 col2" >0.1795</td>
+                        <th id="T_7850660e_acb1_11ea_bac0_cb508f4c6806level0_row1" class="row_heading level0 row1" >R</th>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row1_col0" class="data row1 col0" >0.2946</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row1_col1" class="data row1 col1" >0.0587</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row1_col2" class="data row1 col2" >0.1797</td>
             </tr>
             <tr>
-                        <th id="T_aae11f14_abdf_11ea_89a9_059ab7a6104elevel0_row2" class="row_heading level0 row2" >F</th>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col0" class="data row2 col0" >0.2557</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col1" class="data row2 col1" >0.0502</td>
-                        <td id="T_aae11f14_abdf_11ea_89a9_059ab7a6104erow2_col2" class="data row2 col2" >0.1488</td>
+                        <th id="T_7850660e_acb1_11ea_bac0_cb508f4c6806level0_row2" class="row_heading level0 row2" >F</th>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row2_col0" class="data row2 col0" >0.2561</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row2_col1" class="data row2 col1" >0.0504</td>
+                        <td id="T_7850660e_acb1_11ea_bac0_cb508f4c6806row2_col2" class="data row2 col2" >0.1489</td>
             </tr>
     </tbody></table>
 </div>
@@ -14410,7 +14416,7 @@ When a body is heated at constant temperature</td>
 </div>
 <div class="cell border-box-sizing code_cell rendered">
 <div class="input">
-<div class="prompt input_prompt">In&nbsp;[18]:</div>
+<div class="prompt input_prompt">In&nbsp;[22]:</div>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">nltk</span> <span class="kn">import</span> <span class="n">PorterStemmer</span>
@@ -14453,30 +14459,30 @@ When a body is heated at constant temperature</td>
 
 <div class="output_area">
 
-    <div class="prompt output_prompt">Out[18]:</div>
+    <div class="prompt output_prompt">Out[22]:</div>
 
 
 
 <div class="output_html rendered_html output_subarea output_execute_result">
 <style  type="text/css" >
-</style><table id="T_a9f18920_abdc_11ea_89a9_059ab7a6104e" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
+</style><table id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806" ><thead>    <tr>        <th class="blank level0" ></th>        <th class="col_heading level0 col0" >rouge1</th>        <th class="col_heading level0 col1" >rouge2</th>        <th class="col_heading level0 col2" >rougeL</th>    </tr></thead><tbody>
                 <tr>
-                        <th id="T_a9f18920_abdc_11ea_89a9_059ab7a6104elevel0_row0" class="row_heading level0 row0" >P</th>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow0_col0" class="data row0 col0" >0.3268</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow0_col1" class="data row0 col1" >0.0682</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow0_col2" class="data row0 col2" >0.3271</td>
+                        <th id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806level0_row0" class="row_heading level0 row0" >P</th>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row0_col0" class="data row0 col0" >0.3254</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row0_col1" class="data row0 col1" >0.0680</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row0_col2" class="data row0 col2" >0.3251</td>
             </tr>
             <tr>
-                        <th id="T_a9f18920_abdc_11ea_89a9_059ab7a6104elevel0_row1" class="row_heading level0 row1" >R</th>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow1_col0" class="data row1 col0" >0.3103</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow1_col1" class="data row1 col1" >0.0626</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow1_col2" class="data row1 col2" >0.2555</td>
+                        <th id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806level0_row1" class="row_heading level0 row1" >R</th>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row1_col0" class="data row1 col0" >0.3118</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row1_col1" class="data row1 col1" >0.0631</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row1_col2" class="data row1 col2" >0.2560</td>
             </tr>
             <tr>
-                        <th id="T_a9f18920_abdc_11ea_89a9_059ab7a6104elevel0_row2" class="row_heading level0 row2" >F</th>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow2_col0" class="data row2 col0" >0.2725</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow2_col1" class="data row2 col1" >0.0549</td>
-                        <td id="T_a9f18920_abdc_11ea_89a9_059ab7a6104erow2_col2" class="data row2 col2" >0.2587</td>
+                        <th id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806level0_row2" class="row_heading level0 row2" >F</th>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row2_col0" class="data row2 col0" >0.2729</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row2_col1" class="data row2 col1" >0.0551</td>
+                        <td id="T_59d1df5e_acb2_11ea_bac0_cb508f4c6806row2_col2" class="data row2 col2" >0.2583</td>
             </tr>
     </tbody></table>
 </div>
