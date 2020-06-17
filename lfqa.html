@@ -13093,7 +13093,7 @@ div#notebook {
 <hr>
 <p><img src="images/choco_bis.svg" width="900" align="center"/></p>
 <hr>
-<center> Screenshot of the <a href="http://35.226.96.115:8080/">demo</a> for the question: "How do people make chocolate?" </center><hr>
+<center> Screenshot of the <a href="https://huggingface.co/qa/">demo</a> for the question: "How do people make chocolate?" </center><hr>
 
 </div>
 </div>
@@ -13110,7 +13110,7 @@ div#notebook {
 <p>The <a href="https://arxiv.org/abs/1907.09190">ELI5</a> dataset was built by gathering questions that were asked by community members of the <a href="https://www.reddit.com/r/explainlikeimfive/">r/explainlikeimfive</a> subreddit, along with the answers that were provided by other users. The <a href="https://www.reddit.com/r/explainlikeimfive/wiki/detailed_rules">rules of the subreddit</a> make this data particularly well suited to training a model for abstractive question answering: the questions need to seek an objective explanation about well established facts, and the answers provided need to be understandable to a layperson without any particular knowledge domain.</p>
 <p><strong>In this notebook,</strong> we show how we can take advantage of these recent advances to train a <strong>long form question answering</strong> system which takes in a question, fetches 10 relevant passages from a <a href="https://www.aclweb.org/anthology/2020.lrec-1.297/">Wikipedia snapshot</a>, and writes a multi-sentence answer based on the question and retrieved passages. In particular, training embedding-based retrieval models to gather supporting evidence for open-domain questions is relatively new research area: the last few months have seen some significant progress in cases where direct supervision is available, or with extensive task-specific pretraining. Here, we show how the ELI5 dataset allows us to <strong>train a dense retrieval system without access to either</strong>, making dense retrieval models more accessible. See <a href="https://docs.google.com/presentation/d/1A5wJEzFYGdNem7egJ-BTm6EMI3jGNe1lalyChYL54gw">this presentation</a> from the <a href="https://github.com/huggingface/awesome-papers">Hugging Face reading group</a> for a non-exhaustive overview of recent work in the field.</p>
 <p>Follow along to learn about the steps involved and read some background on the state of the art for some related tasks, or go straight to the:</p>
-<h2 id="Live-Demo!"><a href="http://35.226.96.115:8080/"><strong>Live Demo!</strong></a><a class="anchor-link" href="#Live-Demo!">&#182;</a></h2><p>(And don't forget to scroll down on the left sidebar to show all of the generation options!)</p>
+<h2 id="Live-Demo!"><a href="https://huggingface.co/qa/"><strong>Live Demo!</strong></a><a class="anchor-link" href="#Live-Demo!">&#182;</a></h2><p>(And don't forget to scroll down on the left sidebar to show all of the generation options!)</p>
 <p><a id='prelims'></a></p>
 <h3 id="1.a---Preliminaries">1.a - Preliminaries<a class="anchor-link" href="#1.a---Preliminaries">&#182;</a></h3><p>The implementation presented here relies on the <a href="https://huggingface.co/">Hugging Face</a> <a href="https://github.com/huggingface/transformers">🤗transformers</a> and <a href="https://github.com/huggingface/nlp">🤗nlp</a> libraries. Wikipedia indexing relies on <a href="https://www.elastic.co/elasticsearch">ElasticSearch</a> with its <a href="https://github.com/elastic/elasticsearch-py">python bindings</a> for the sparse version, and <a href="https://github.com/facebookresearch/faiss/">faiss</a> for the dense version. You can get all of these by running:</p>
 <blockquote><p>pip install elasticsearch<br>
@@ -13144,7 +13144,7 @@ tar -xzvf elasticsearch-7.7.1-linux-x86_64.tar.gz</p>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>This notebook is meant to be run from the <code>transformers/examples/eli5</code> folder in the <a href="https://github.com/huggingface/transformers">🤗transformers</a> library, as all of the useful methods it relies on are compiled in the <a href="https://github.com/yjernite/transformers/blob/eli5_examples/examples/eli5/eli5_utils.py">eli5_utils.py</a> script located there:</p>
+<p>Additionally, all of the useful methods used in this notebook are compiled in the <a href="https://github.com/huggingface/longform-qa/lfqa_utils.py">lfqa_utils.py</a> script:</p>
 
 </div>
 </div>
@@ -13154,7 +13154,7 @@ tar -xzvf elasticsearch-7.7.1-linux-x86_64.tar.gz</p>
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">eli5_utils</span> <span class="kn">import</span> <span class="o">*</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">lfqa_utils</span> <span class="kn">import</span> <span class="o">*</span>
 </pre></div>
 
     </div>
@@ -14395,7 +14395,7 @@ When a body is heated at constant temperature</td>
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>That's it for today! And once again, if you want to play with the model a bit more and ask it whatever question comes to mind, please feel free to head over to:</p>
-<h1 id="Our-Live-Demo!"><a href="http://35.226.96.115:8080/"><strong>Our Live Demo!</strong></a><a class="anchor-link" href="#Our-Live-Demo!">&#182;</a></h1><p>Thank you for reading!</p>
+<h1 id="Our-Live-Demo!"><a href="https://huggingface.co/qa/"><strong>Our Live Demo!</strong></a><a class="anchor-link" href="#Our-Live-Demo!">&#182;</a></h1><p>Thank you for reading!</p>
 
 </div>
 </div>
